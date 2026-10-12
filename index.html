@@ -266,6 +266,15 @@
       border: 2px solid var(--border-dark);
       padding: 16px;
     }
+
+    .setting-checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 14px;
+      font-size: 13px;
+      cursor: pointer;
+    }
   </style>
 </head>
 <body>
@@ -309,12 +318,20 @@
     </div>
   </div>
 
-  <!-- バックアップ管理モーダル -->
+  <!-- バックアップ・動作管理モーダル -->
   <div class="modal-overlay" id="settings-modal-overlay" onclick="closeSettings(event)" style="align-items: center;">
     <div class="settings-modal" onclick="event.stopPropagation()">
-      <h3 style="margin-bottom: 8px; font-size: 14px; font-weight: 700;">データ管理・バックアップ</h3>
-      <p style="font-size: 11px; color: var(--text-sub); margin-bottom: 12px; line-height: 1.4;">
-        ブラウザのキャッシュ消去によるデータ消失を防ぐため、定期的にJSONデータを保存してください。
+      <h3 style="margin-bottom: 12px; font-size: 14px; font-weight: 700;">設定・データ管理</h3>
+
+      <label class="setting-checkbox-row">
+        <input type="checkbox" id="auto-scroll-toggle" onchange="toggleAutoScroll(this.checked)">
+        <span>今日への自動移動を有効化</span>
+      </label>
+
+      <hr style="margin-bottom: 12px; border: none; border-top: 1px solid var(--border-color);">
+
+      <p style="font-size: 11px; color: var(--text-sub); margin-bottom: 8px; line-height: 1.4;">
+        ブラウザのキャッシュ消去によるデータ消失を防ぐため、定期的にバックアップを保存してください。
       </p>
       <button class="btn-square" style="width: 100%; margin-bottom: 8px; padding: 8px;" onclick="exportData()">データをコピー (JSON)</button>
       <button class="btn-square" style="width: 100%; margin-bottom: 14px; padding: 8px;" onclick="importData()">データを復元</button>
@@ -324,7 +341,6 @@
 
   <script>
     // 講義定義（全8行・同一科目を統合）
-    // day: 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土
     const COURSES = [
       { id: 'ls2', name: 'LS演習Ⅱ', periods: '月3 / 木3', classDays: [1, 4], dueDays: [3, 0], dueText: '〆:水・日' },
       { id: 'cs_intro2', name: 'CS概論Ⅱ', periods: '月4 / 木5', classDays: [1, 4], dueDays: [3, 0], dueText: '〆:水・日' },
@@ -349,6 +365,7 @@
 
     let attendanceData = JSON.parse(localStorage.getItem('att_matrix_v2') || '{}');
     let assignmentData = JSON.parse(localStorage.getItem('asg_matrix_v2') || '{}');
+    let autoScrollEnabled = JSON.parse(localStorage.getItem('auto_scroll_today') ?? 'true');
 
     // 初期化（パターンB：開講コマのみ🈶、他は-）
     function initDefaultData() {
@@ -382,6 +399,7 @@
     function saveData() {
       localStorage.setItem('att_matrix_v2', JSON.stringify(attendanceData));
       localStorage.setItem('asg_matrix_v2', JSON.stringify(assignmentData));
+      localStorage.setItem('auto_scroll_today', JSON.stringify(autoScrollEnabled));
     }
 
     function formatDate(d) {
@@ -391,11 +409,15 @@
       return `${y}-${m}-${date}`;
     }
 
+    // タブ切り替え（切り替え時にも今日へ自動スクロール）
     function switchTab(tab) {
       currentTab = tab;
       document.getElementById('tab-attendance').classList.toggle('active', tab === 'attendance');
       document.getElementById('tab-assignment').classList.toggle('active', tab === 'assignment');
       renderMatrix();
+      if (autoScrollEnabled) {
+        scrollToToday();
+      }
     }
 
     function changeMonth(offset) {
@@ -489,7 +511,6 @@
           td.className = 'cell-slot';
           if (dStr === todayStr) td.classList.add('cell-today');
 
-          // 課題達成状況タブ時、締切曜日のセルの右枠線を赤色に設定
           if (currentTab === 'assignment' && c.dueDays.includes(dayOfWeek)) {
             td.classList.add('deadline-border');
           }
@@ -547,11 +568,12 @@
           if (todayCell) {
             todayCell.scrollIntoView({ inline: 'center', behavior: 'smooth' });
           }
-        }, 80);
+        }, 120);
       }
     }
 
     function openSettings() {
+      document.getElementById('auto-scroll-toggle').checked = autoScrollEnabled;
       document.getElementById('settings-modal-overlay').classList.add('active');
     }
 
@@ -559,8 +581,13 @@
       document.getElementById('settings-modal-overlay').classList.remove('active');
     }
 
+    function toggleAutoScroll(enabled) {
+      autoScrollEnabled = enabled;
+      saveData();
+    }
+
     function exportData() {
-      const exportObj = { attendanceData, assignmentData };
+      const exportObj = { attendanceData, assignmentData, autoScrollEnabled };
       navigator.clipboard.writeText(JSON.stringify(exportObj)).then(() => {
         alert('データをクリップボードにコピーしました。');
       });
@@ -573,6 +600,7 @@
           const parsed = JSON.parse(json);
           if (parsed.attendanceData) attendanceData = parsed.attendanceData;
           if (parsed.assignmentData) assignmentData = parsed.assignmentData;
+          if (parsed.autoScrollEnabled !== undefined) autoScrollEnabled = parsed.autoScrollEnabled;
           saveData();
           renderMatrix();
           alert('復元が完了しました。');
@@ -583,8 +611,14 @@
       }
     }
 
+    // 初期起動処理
     initDefaultData();
     renderMatrix();
+
+    // 起動時に自動で今日へ移動
+    if (autoScrollEnabled) {
+      scrollToToday();
+    }
   </script>
 </body>
 </html>

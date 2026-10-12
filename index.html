@@ -6,20 +6,23 @@
   <title>講義・課題マネージャー</title>
   <style>
     :root {
-      --primary-color: #1976d2;
-      --bg-color: #f8f9fa;
+      --bg-color: #f4f5f7;
       --card-bg: #ffffff;
-      --border-color: #e0e0e0;
-      --text-main: #333333;
-      --text-sub: #757575;
-      --sun-color: #e53935;
-      --sat-color: #1e88e5;
+      --border-color: #d1d5db;
+      --border-dark: #374151;
+      --text-main: #111827;
+      --text-sub: #4b5563;
+      --sun-color: #dc2626;
+      --sat-color: #2563eb;
+      --deadline-color: #e11d48;
+      --today-bg: #e0f2fe;
     }
 
     * {
       box-sizing: border-box;
       margin: 0;
       padding: 0;
+      border-radius: 0 !important; /* すべての角丸を完全に無効化 */
       -webkit-tap-highlight-color: transparent;
     }
 
@@ -33,10 +36,10 @@
       height: 100vh;
     }
 
-    /* 上部ヘッダー & タブ */
+    /* ヘッダー & タブ */
     header {
       background: var(--card-bg);
-      border-bottom: 1px solid var(--border-color);
+      border-bottom: 2px solid var(--border-dark);
       position: sticky;
       top: 0;
       z-index: 100;
@@ -51,66 +54,47 @@
       flex: 1;
       padding: 12px 0;
       text-align: center;
-      font-size: 15px;
-      font-weight: bold;
-      background: none;
+      font-size: 14px;
+      font-weight: 700;
+      background: #e5e7eb;
       border: none;
       color: var(--text-sub);
       cursor: pointer;
-      position: relative;
     }
 
     .tab-btn.active {
-      color: var(--primary-color);
-    }
-
-    .tab-btn.active::after {
-      content: '';
-      position: absolute;
-      bottom: 0;
-      left: 15%;
-      width: 70%;
-      height: 3px;
-      background: var(--primary-color);
-      border-radius: 3px 3px 0 0;
+      background: var(--card-bg);
+      color: var(--text-main);
+      border-bottom: 2px solid var(--text-main);
     }
 
     .nav-bar {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 8px 12px;
+      padding: 8px 10px;
     }
 
     .month-selector {
       display: flex;
       align-items: center;
-      gap: 8px;
-      font-size: 17px;
-      font-weight: bold;
+      gap: 6px;
+      font-size: 16px;
+      font-weight: 700;
     }
 
-    .month-nav-btn {
-      background: none;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
+    .btn-square {
+      background: #ffffff;
+      border: 1px solid var(--border-dark);
       padding: 4px 10px;
-      font-size: 14px;
-      cursor: pointer;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .icon-btn {
-      background: none;
-      border: 1px solid var(--border-color);
-      border-radius: 6px;
-      padding: 5px 8px;
       font-size: 13px;
+      font-weight: 600;
       cursor: pointer;
+      color: var(--text-main);
+    }
+
+    .btn-square:active {
+      background: #e5e7eb;
     }
 
     /* マトリクステーブル表示域 */
@@ -118,78 +102,78 @@
       flex: 1;
       overflow: auto;
       background: var(--card-bg);
-      position: relative;
       -webkit-overflow-scrolling: touch;
     }
 
     table {
-      border-collapse: separate;
-      border-spacing: 0;
+      border-collapse: collapse;
       width: max-content;
+      table-layout: fixed;
     }
 
-    /* 固定ヘッダー & 列 */
     th, td {
       border-right: 1px solid var(--border-color);
       border-bottom: 1px solid var(--border-color);
       text-align: center;
-      padding: 6px 4px;
-      min-width: 46px;
-      height: 48px;
+      padding: 4px;
+      min-width: 44px;
+      height: 52px;
     }
 
     thead th {
       position: sticky;
       top: 0;
-      background: #fafafa;
+      background: #f3f4f6;
+      border-bottom: 2px solid var(--border-dark);
       z-index: 10;
     }
 
-    /* 講義名列（左側固定） */
+    /* 左側科目列の固定 */
     .col-subject {
       position: sticky;
       left: 0;
       background: #ffffff;
       z-index: 20;
-      min-width: 105px;
-      max-width: 105px;
+      min-width: 110px;
+      max-width: 110px;
       text-align: left;
       padding: 6px 8px;
       font-size: 12px;
-      font-weight: 600;
-      box-shadow: 2px 0 5px rgba(0,0,0,0.04);
+      font-weight: 700;
+      border-right: 2px solid var(--border-dark);
     }
 
     thead th.col-subject {
       z-index: 30;
-      background: #fafafa;
+      background: #f3f4f6;
     }
 
-    .sub-period {
+    .sub-periods {
       font-size: 10px;
+      font-weight: 400;
       color: var(--text-sub);
       display: block;
+      margin-top: 1px;
     }
 
-    .due-badge {
+    .due-info {
       font-size: 9px;
-      color: #d32f2f;
-      background: #ffebee;
-      padding: 1px 4px;
-      border-radius: 3px;
-      display: inline-block;
+      font-weight: 600;
+      color: var(--deadline-color);
+      display: block;
       margin-top: 2px;
     }
 
-    /* 日付ヘッダー */
+    /* 日付表示 */
     .day-num {
-      font-size: 14px;
-      font-weight: bold;
+      font-size: 13px;
+      font-weight: 700;
       display: block;
     }
 
     .day-name {
       font-size: 10px;
+      display: block;
     }
 
     .day-sun { color: var(--sun-color); }
@@ -198,25 +182,30 @@
     /* セル */
     .cell-slot {
       cursor: pointer;
-      font-size: 18px;
+      font-size: 17px;
       user-select: none;
+      background-color: #ffffff;
     }
 
-    .cell-slot.no-class {
-      background-color: #fafafa;
-      cursor: default;
+    .cell-slot:active {
+      background-color: #e5e7eb;
     }
 
     .cell-today {
-      background-color: #e3f2fd !important;
+      background-color: var(--today-bg) !important;
     }
 
-    /* ボトムシート（ステータス選択メニュー） */
+    /* 締め切り境界線（翌日との境界を赤色に） */
+    td.deadline-border {
+      border-right: 2px solid var(--deadline-color) !important;
+    }
+
+    /* ステータス選択メニュー（ボトムシート） */
     .modal-overlay {
       display: none;
       position: fixed;
       top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.4);
+      background: rgba(0,0,0,0.5);
       z-index: 200;
       align-items: flex-end;
     }
@@ -228,28 +217,23 @@
     .bottom-sheet {
       background: #ffffff;
       width: 100%;
-      border-radius: 16px 16px 0 0;
-      padding: 16px 20px 28px;
-      box-shadow: 0 -4px 16px rgba(0,0,0,0.15);
-      animation: slideUp 0.2s ease-out;
-    }
-
-    @keyframes slideUp {
-      from { transform: translateY(100%); }
-      to { transform: translateY(0); }
+      border-top: 3px solid var(--border-dark);
+      padding: 16px 14px 28px;
     }
 
     .sheet-title {
-      font-size: 15px;
-      font-weight: bold;
-      margin-bottom: 14px;
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 12px;
       text-align: center;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 8px;
     }
 
     .status-options {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 8px;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 6px;
     }
 
     .status-btn {
@@ -257,408 +241,9 @@
       flex-direction: column;
       align-items: center;
       gap: 4px;
-      background: #f5f5f5;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 10px 4px;
+      background: #f9fafb;
+      border: 1px solid var(--border-dark);
+      padding: 10px 2px;
       font-size: 11px;
+      font-weight: 600;
       cursor: pointer;
-    }
-
-    .status-btn span.icon {
-      font-size: 20px;
-    }
-
-    /* 設定用モーダル */
-    .settings-modal {
-      background: #fff;
-      width: 90%;
-      max-width: 400px;
-      margin: auto;
-      border-radius: 12px;
-      padding: 20px;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-
-    .setting-item {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 12px;
-      font-size: 13px;
-    }
-
-    select, textarea, button.action-btn {
-      font-size: 13px;
-      padding: 6px 8px;
-      border-radius: 6px;
-      border: 1px solid #ccc;
-    }
-
-    button.action-btn {
-      background: var(--primary-color);
-      color: #fff;
-      border: none;
-      cursor: pointer;
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-
-  <header>
-    <div class="tab-bar">
-      <button class="tab-btn active" id="tab-attendance" onclick="switchTab('attendance')">出席状況</button>
-      <button class="tab-btn" id="tab-assignment" onclick="switchTab('assignment')">課題達成状況</button>
-    </div>
-    <div class="nav-bar">
-      <div class="month-selector">
-        <button class="month-nav-btn" onclick="changeMonth(-1)">◀</button>
-        <span id="current-month-label">2026年9月</span>
-        <button class="month-nav-btn" onclick="changeMonth(1)">▶</button>
-      </div>
-      <div class="header-actions">
-        <button class="icon-btn" onclick="scrollToToday()">今日</button>
-        <button class="icon-btn" onclick="openSettings()">⚙️ 設定</button>
-      </div>
-    </div>
-  </header>
-
-  <div class="table-container" id="scroll-container">
-    <table id="matrix-table">
-      <!-- JavaScriptで動的生成 -->
-    </table>
-  </div>
-
-  <!-- ステータス変更ボトムシート -->
-  <div class="modal-overlay" id="status-sheet-overlay" onclick="closeStatusSheet(event)">
-    <div class="bottom-sheet" onclick="event.stopPropagation()">
-      <div class="sheet-title" id="sheet-title">ステータス変更</div>
-      <div class="status-options">
-        <button class="status-btn" onclick="applyStatus('✅')"><span class="icon">✅</span><span id="label-done">出席/完了</span></button>
-        <button class="status-btn" onclick="applyStatus('🈶')"><span class="icon">🈶</span>有り</button>
-        <button class="status-btn" onclick="applyStatus('🆘')"><span class="icon">🆘</span>遅刻</button>
-        <button class="status-btn" onclick="applyStatus('❌')"><span class="icon">❌</span><span id="label-absent">欠席/不可</span></button>
-        <button class="status-btn" onclick="applyStatus('🈚️')"><span class="icon">🈚️</span>休講/無</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- 設定・バックアップモーダル -->
-  <div class="modal-overlay" id="settings-modal-overlay" onclick="closeSettings(event)" style="align-items: center;">
-    <div class="settings-modal" onclick="event.stopPropagation()">
-      <h3 style="margin-bottom: 12px; font-size: 16px;">課題提出曜日の設定</h3>
-      <div id="due-settings-list"></div>
-
-      <hr style="margin: 16px 0; border: none; border-top: 1px solid var(--border-color);">
-
-      <h3 style="margin-bottom: 8px; font-size: 15px;">データバックアップ</h3>
-      <p style="font-size: 11px; color: var(--text-sub); margin-bottom: 8px;">ブラウザのキャッシュ消去等に備え、データをコピーして保存できます。</p>
-      <button class="action-btn" style="background:#555;" onclick="exportData()">データをコピー (JSON)</button>
-      <button class="action-btn" style="background:#777; margin-top:6px;" onclick="importData()">データを復元</button>
-      
-      <button class="action-btn" style="background:#999; margin-top:12px;" onclick="closeSettings()">閉じる</button>
-    </div>
-  </div>
-
-  <script>
-    // 講義定義（全10コマ）
-    const COURSES = [
-      { id: 'mon3', name: 'LS演習Ⅱ', period: '月3', day: 1, defaultDue: '木' },
-      { id: 'mon4', name: 'CS概論Ⅱ', period: '月4', day: 1, defaultDue: '水' },
-      { id: 'wed2', name: '情連概論Ⅱ', period: '水2', day: 3, defaultDue: '火' },
-      { id: 'wed3', name: '情連実習Ⅱ', period: '水3', day: 3, defaultDue: '日' },
-      { id: 'wed6', name: 'マクロ経済学', period: '水6', day: 3, defaultDue: '水' },
-      { id: 'thu3', name: 'LS演習Ⅱ', period: '木3', day: 4, defaultDue: '月' },
-      { id: 'thu5', name: 'CS概論Ⅱ', period: '木5', day: 4, defaultDue: '日' },
-      { id: 'fri1', name: 'RW演習Ⅱ', period: '金1', day: 5, defaultDue: '金' },
-      { id: 'fri4', name: 'CS演習Ⅱ', period: '金4', day: 5, defaultDue: '日' },
-      { id: 'fri5', name: '数学', period: '金5', day: 5, defaultDue: '木' }
-    ];
-
-    const START_DATE = new Date('2026-09-30');
-    const END_DATE = new Date('2027-01-30');
-    const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
-
-    let currentTab = 'attendance'; // 'attendance' or 'assignment'
-    let currentYear = 2026;
-    let currentMonth = 8; // 0-indexed (8 = 9月)
-    let selectedCellKey = null;
-
-    // データ読み込み or 初期化
-    let attendanceData = JSON.parse(localStorage.getItem('attendance_data') || '{}');
-    let assignmentData = JSON.parse(localStorage.getItem('assignment_data') || '{}');
-    let dueDaySettings = JSON.parse(localStorage.getItem('due_day_settings') || '{}');
-
-    // 提出曜日の初期値反映
-    COURSES.forEach(c => {
-      if (!dueDaySettings[c.id]) {
-        dueDaySettings[c.id] = c.defaultDue;
-      }
-    });
-
-    // 全期間にデフォルト「🈶」をセット（未設定の場合）
-    function initDefaultData() {
-      let cur = new Date(START_DATE);
-      while (cur <= END_DATE) {
-        const dStr = formatDate(cur);
-        const dayOfWeek = cur.getDay();
-
-        COURSES.forEach(c => {
-          if (c.day === dayOfWeek) {
-            const key = `${dStr}_${c.id}`;
-            if (!attendanceData[key]) attendanceData[key] = '🈶';
-            if (!assignmentData[key]) assignmentData[key] = '🈶';
-          }
-        });
-        cur.setDate(cur.getDate() + 1);
-      }
-      saveData();
-    }
-
-    function saveData() {
-      localStorage.setItem('attendance_data', JSON.stringify(attendanceData));
-      localStorage.setItem('assignment_data', JSON.stringify(assignmentData));
-      localStorage.setItem('due_day_settings', JSON.stringify(dueDaySettings));
-    }
-
-    function formatDate(d) {
-      const y = d.getFullYear();
-      const m = String(d.getMonth() + 1).padStart(2, '0');
-      const date = String(d.getDate()).padStart(2, '0');
-      return `${y}-${m}-${date}`;
-    }
-
-    // タブ切り替え
-    function switchTab(tab) {
-      currentTab = tab;
-      document.getElementById('tab-attendance').classList.toggle('active', tab === 'attendance');
-      document.getElementById('tab-assignment').classList.toggle('active', tab === 'assignment');
-      renderMatrix();
-    }
-
-    // 月切り替え
-    function changeMonth(offset) {
-      currentMonth += offset;
-      if (currentMonth < 8 && currentYear === 2026) {
-        currentMonth = 8;
-        return;
-      }
-      if (currentMonth > 11) {
-        currentMonth = 0;
-        currentYear++;
-      } else if (currentMonth < 0) {
-        currentMonth = 11;
-        currentYear--;
-      }
-      if (currentYear > 2027 || (currentYear === 2027 && currentMonth > 0)) {
-        currentYear = 2027;
-        currentMonth = 0;
-        return;
-      }
-      renderMatrix();
-    }
-
-    // マトリクス描画
-    function renderMatrix() {
-      document.getElementById('current-month-label').innerText = `${currentYear}年${currentMonth + 1}月`;
-      const table = document.getElementById('matrix-table');
-      table.innerHTML = '';
-
-      // その月の日数を取得
-      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-      const dateList = [];
-
-      for (let day = 1; day <= daysInMonth; day++) {
-        const d = new Date(currentYear, currentMonth, day);
-        if (d >= START_DATE && d <= END_DATE) {
-          dateList.push(d);
-        }
-      }
-
-      // thead
-      const thead = document.createElement('thead');
-      const trHead = document.createElement('tr');
-      const thCorner = document.createElement('th');
-      thCorner.className = 'col-subject';
-      thCorner.innerText = currentTab === 'attendance' ? '講義 / 出席' : '講義 / 課題';
-      trHead.appendChild(thCorner);
-
-      const todayStr = formatDate(new Date());
-
-      dateList.forEach(d => {
-        const th = document.createElement('th');
-        const dayOfWeek = d.getDay();
-        const dStr = formatDate(d);
-
-        let cls = '';
-        if (dayOfWeek === 0) cls = 'day-sun';
-        if (dayOfWeek === 6) cls = 'day-sat';
-        if (dStr === todayStr) th.classList.add('cell-today');
-
-        th.innerHTML = `
-          <span class="day-num ${cls}">${d.getDate()}</span>
-          <span class="day-name ${cls}">${DAY_NAMES[dayOfWeek]}</span>
-        `;
-        trHead.appendChild(th);
-      });
-      thead.appendChild(trHead);
-      table.appendChild(thead);
-
-      // tbody
-      const tbody = document.createElement('tbody');
-      const activeData = currentTab === 'attendance' ? attendanceData : assignmentData;
-
-      COURSES.forEach(c => {
-        const tr = document.createElement('tr');
-        const thSub = document.createElement('th');
-        thSub.className = 'col-subject';
-
-        let extraLabel = '';
-        if (currentTab === 'assignment') {
-          extraLabel = `<span class="due-badge">〆:${dueDaySettings[c.id]}曜</span>`;
-        }
-
-        thSub.innerHTML = `
-          ${c.name}
-          <span class="sub-period">${c.period}</span>
-          ${extraLabel}
-        `;
-        tr.appendChild(thSub);
-
-        dateList.forEach(d => {
-          const td = document.createElement('td');
-          const dStr = formatDate(d);
-          const key = `${dStr}_${c.id}`;
-
-          if (dStr === todayStr) td.classList.add('cell-today');
-
-          if (d.getDay() === c.day) {
-            td.className += ' cell-slot';
-            td.innerText = activeData[key] || '🈶';
-            td.onclick = () => openStatusSheet(key, `${d.getMonth()+1}/${d.getDate()}(${DAY_NAMES[d.getDay()]}) ${c.name}`);
-          } else {
-            td.className += ' cell-slot no-class';
-            td.innerText = '';
-          }
-          tr.appendChild(td);
-        });
-        tbody.appendChild(tr);
-      });
-      table.appendChild(tbody);
-    }
-
-    // ステータス変更ボトムシート操作
-    function openStatusSheet(key, title) {
-      selectedCellKey = key;
-      document.getElementById('sheet-title').innerText = title;
-
-      if (currentTab === 'attendance') {
-        document.getElementById('label-done').innerText = '出席';
-        document.getElementById('label-absent').innerText = '欠席';
-      } else {
-        document.getElementById('label-done').innerText = '提出';
-        document.getElementById('label-absent').innerText = '未提出';
-      }
-
-      document.getElementById('status-sheet-overlay').classList.add('active');
-    }
-
-    function closeStatusSheet() {
-      document.getElementById('status-sheet-overlay').classList.remove('active');
-      selectedCellKey = null;
-    }
-
-    function applyStatus(status) {
-      if (!selectedCellKey) return;
-      if (currentTab === 'attendance') {
-        attendanceData[selectedCellKey] = status;
-      } else {
-        assignmentData[selectedCellKey] = status;
-      }
-      saveData();
-      renderMatrix();
-      closeStatusSheet();
-    }
-
-    // 今日へスクロール
-    function scrollToToday() {
-      const now = new Date();
-      if (now >= START_DATE && now <= END_DATE) {
-        currentYear = now.getFullYear();
-        currentMonth = now.getMonth();
-        renderMatrix();
-        setTimeout(() => {
-          const todayCell = document.querySelector('.cell-today');
-          if (todayCell) {
-            todayCell.scrollIntoView({ inline: 'center', behavior: 'smooth' });
-          }
-        }, 100);
-      }
-    }
-
-    // 設定モーダル
-    function openSettings() {
-      const list = document.getElementById('due-settings-list');
-      list.innerHTML = '';
-
-      COURSES.forEach(c => {
-        const item = document.createElement('div');
-        item.className = 'setting-item';
-        item.innerHTML = `
-          <span>${c.name} (${c.period})</span>
-          <select onchange="updateDueDay('${c.id}', this.value)">
-            ${DAY_NAMES.map(d => `<option value="\${d}" ${dueDaySettings[c.id] === d ? 'selected' : ''}>${d}曜締切</option>`).join('')}
-          </select>
-        `;
-        list.appendChild(item);
-      });
-
-      document.getElementById('settings-modal-overlay').classList.add('active');
-    }
-
-    function closeSettings() {
-      document.getElementById('settings-modal-overlay').classList.remove('active');
-      renderMatrix();
-    }
-
-    function updateDueDay(courseId, day) {
-      dueDaySettings[courseId] = day;
-      saveData();
-    }
-
-    function exportData() {
-      const exportObj = { attendanceData, assignmentData, dueDaySettings };
-      navigator.clipboard.writeText(JSON.stringify(exportObj)).then(() => {
-        alert('データをクリップボードにコピーしました！メモ帳等に保存してください。');
-      });
-    }
-
-    function importData() {
-      const json = prompt('バックアップしたJSONデータを貼り付けてください:');
-      if (json) {
-        try {
-          const parsed = JSON.parse(json);
-          if (parsed.attendanceData) attendanceData = parsed.attendanceData;
-          if (parsed.assignmentData) assignmentData = parsed.assignmentData;
-          if (parsed.dueDaySettings) dueDaySettings = parsed.dueDaySettings;
-          saveData();
-          renderMatrix();
-          alert('復元が完了しました。');
-          closeSettings();
-        } catch (e) {
-          alert('データの形式が正しくありません。');
-        }
-      }
-    }
-
-    // 初期実行
-    initDefaultData();
-    renderMatrix();
-  </script>
-</body>
-</html>

@@ -247,3 +247,344 @@
       font-size: 11px;
       font-weight: 600;
       cursor: pointer;
+    }
+
+    .status-btn:active {
+      background: #e5e7eb;
+    }
+
+    .status-btn span.icon {
+      font-size: 18px;
+    }
+
+    /* 設定・バックアップモーダル */
+    .settings-modal {
+      background: #fff;
+      width: 90%;
+      max-width: 360px;
+      margin: auto;
+      border: 2px solid var(--border-dark);
+      padding: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="tab-bar">
+      <button class="tab-btn active" id="tab-attendance" onclick="switchTab('attendance')">出席状況</button>
+      <button class="tab-btn" id="tab-assignment" onclick="switchTab('assignment')">課題達成状況</button>
+    </div>
+    <div class="nav-bar">
+      <div class="month-selector">
+        <button class="btn-square" onclick="changeMonth(-1)">◀</button>
+        <span id="current-month-label">2026年9月</span>
+        <button class="btn-square" onclick="changeMonth(1)">▶</button>
+      </div>
+      <div>
+        <button class="btn-square" onclick="scrollToToday()">今日</button>
+        <button class="btn-square" onclick="openSettings()">管理</button>
+      </div>
+    </div>
+  </header>
+
+  <div class="table-container" id="scroll-container">
+    <table id="matrix-table">
+      <!-- JavaScriptで動的生成 -->
+    </table>
+  </div>
+
+  <!-- ステータス変更ボトムシート -->
+  <div class="modal-overlay" id="status-sheet-overlay" onclick="closeStatusSheet(event)">
+    <div class="bottom-sheet" onclick="event.stopPropagation()">
+      <div class="sheet-title" id="sheet-title">ステータス変更</div>
+      <div class="status-options">
+        <button class="status-btn" onclick="applyStatus('-')"><span class="icon">−</span>未設定</button>
+        <button class="status-btn" onclick="applyStatus('🈶')"><span class="icon">🈶</span>有り</button>
+        <button class="status-btn" onclick="applyStatus('✅')"><span class="icon">✅</span><span id="label-done">出席/完</span></button>
+        <button class="status-btn" onclick="applyStatus('🆘')"><span class="icon">🆘</span>遅刻</button>
+        <button class="status-btn" onclick="applyStatus('❌')"><span class="icon">❌</span><span id="label-absent">欠席/不可</span></button>
+        <button class="status-btn" onclick="applyStatus('🈚️')"><span class="icon">🈚️</span>休講/無</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- バックアップ管理モーダル -->
+  <div class="modal-overlay" id="settings-modal-overlay" onclick="closeSettings(event)" style="align-items: center;">
+    <div class="settings-modal" onclick="event.stopPropagation()">
+      <h3 style="margin-bottom: 8px; font-size: 14px; font-weight: 700;">データ管理・バックアップ</h3>
+      <p style="font-size: 11px; color: var(--text-sub); margin-bottom: 12px; line-height: 1.4;">
+        ブラウザのキャッシュ消去によるデータ消失を防ぐため、定期的にJSONデータを保存してください。
+      </p>
+      <button class="btn-square" style="width: 100%; margin-bottom: 8px; padding: 8px;" onclick="exportData()">データをコピー (JSON)</button>
+      <button class="btn-square" style="width: 100%; margin-bottom: 14px; padding: 8px;" onclick="importData()">データを復元</button>
+      <button class="btn-square" style="width: 100%; background: #e5e7eb; padding: 6px;" onclick="closeSettings()">閉じる</button>
+    </div>
+  </div>
+
+  <script>
+    // 講義定義（全8行・同一科目を統合）
+    // day: 0=日, 1=月, 2=火, 3=水, 4=木, 5=金, 6=土
+    const COURSES = [
+      { id: 'ls2', name: 'LS演習Ⅱ', periods: '月3 / 木3', classDays: [1, 4], dueDays: [3, 0], dueText: '〆:水・日' },
+      { id: 'cs_intro2', name: 'CS概論Ⅱ', periods: '月4 / 木5', classDays: [1, 4], dueDays: [3, 0], dueText: '〆:水・日' },
+      { id: 'joren_intro2', name: '情連概論Ⅱ', periods: '水2', classDays: [3], dueDays: [2], dueText: '〆:火' },
+      { id: 'joren_exp2', name: '情連実習Ⅱ', periods: '水3', classDays: [3], dueDays: [0], dueText: '〆:日' },
+      { id: 'macro', name: 'マクロ経済学', periods: '水6', classDays: [3], dueDays: [2], dueText: '〆:火' },
+      { id: 'rw2', name: 'RW演習Ⅱ', periods: '金1', classDays: [5], dueDays: [4], dueText: '〆:木' },
+      { id: 'cs_exp2', name: 'CS演習Ⅱ', periods: '金4', classDays: [5], dueDays: [4], dueText: '〆:木' },
+      { id: 'math', name: '数学', periods: '金5', classDays: [5], dueDays: [4], dueText: '〆:木' }
+    ];
+
+    const START_DATE = new Date('2026-09-01');
+    const END_DATE = new Date('2027-01-31');
+    const CLASS_START = new Date('2026-09-30');
+    const CLASS_END = new Date('2027-01-30');
+    const DAY_NAMES = ['日', '月', '火', '水', '木', '金', '土'];
+
+    let currentTab = 'attendance';
+    let currentYear = 2026;
+    let currentMonth = 8; // 8 = 9月
+    let selectedCellKey = null;
+
+    let attendanceData = JSON.parse(localStorage.getItem('att_matrix_v2') || '{}');
+    let assignmentData = JSON.parse(localStorage.getItem('asg_matrix_v2') || '{}');
+
+    // 初期化（パターンB：開講コマのみ🈶、他は-）
+    function initDefaultData() {
+      let cur = new Date(START_DATE);
+      let changed = false;
+
+      while (cur <= END_DATE) {
+        const dStr = formatDate(cur);
+        const dayOfWeek = cur.getDay();
+        const isClassTerm = (cur >= CLASS_START && cur <= CLASS_END);
+
+        COURSES.forEach(c => {
+          const key = `${dStr}_${c.id}`;
+          const isClassDay = c.classDays.includes(dayOfWeek);
+
+          if (!attendanceData[key]) {
+            attendanceData[key] = (isClassTerm && isClassDay) ? '🈶' : '-';
+            changed = true;
+          }
+          if (!assignmentData[key]) {
+            assignmentData[key] = (isClassTerm && isClassDay) ? '🈶' : '-';
+            changed = true;
+          }
+        });
+        cur.setDate(cur.getDate() + 1);
+      }
+
+      if (changed) saveData();
+    }
+
+    function saveData() {
+      localStorage.setItem('att_matrix_v2', JSON.stringify(attendanceData));
+      localStorage.setItem('asg_matrix_v2', JSON.stringify(assignmentData));
+    }
+
+    function formatDate(d) {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const date = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${date}`;
+    }
+
+    function switchTab(tab) {
+      currentTab = tab;
+      document.getElementById('tab-attendance').classList.toggle('active', tab === 'attendance');
+      document.getElementById('tab-assignment').classList.toggle('active', tab === 'assignment');
+      renderMatrix();
+    }
+
+    function changeMonth(offset) {
+      currentMonth += offset;
+      if (currentYear === 2026 && currentMonth < 8) {
+        currentMonth = 8;
+        return;
+      }
+      if (currentMonth > 11) {
+        currentMonth = 0;
+        currentYear++;
+      } else if (currentMonth < 0) {
+        currentMonth = 11;
+        currentYear--;
+      }
+      if (currentYear > 2027 || (currentYear === 2027 && currentMonth > 0)) {
+        currentYear = 2027;
+        currentMonth = 0;
+        return;
+      }
+      renderMatrix();
+    }
+
+    function renderMatrix() {
+      document.getElementById('current-month-label').innerText = `${currentYear}年${currentMonth + 1}月`;
+      const table = document.getElementById('matrix-table');
+      table.innerHTML = '';
+
+      const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
+      const dateList = [];
+
+      for (let day = 1; day <= daysInMonth; day++) {
+        const d = new Date(currentYear, currentMonth, day);
+        if (d >= START_DATE && d <= END_DATE) {
+          dateList.push(d);
+        }
+      }
+
+      // thead
+      const thead = document.createElement('thead');
+      const trHead = document.createElement('tr');
+      const thCorner = document.createElement('th');
+      thCorner.className = 'col-subject';
+      thCorner.innerText = currentTab === 'attendance' ? '講義 / 出席' : '講義 / 課題';
+      trHead.appendChild(thCorner);
+
+      const todayStr = formatDate(new Date());
+
+      dateList.forEach(d => {
+        const th = document.createElement('th');
+        const dayOfWeek = d.getDay();
+        const dStr = formatDate(d);
+
+        let cls = '';
+        if (dayOfWeek === 0) cls = 'day-sun';
+        if (dayOfWeek === 6) cls = 'day-sat';
+        if (dStr === todayStr) th.classList.add('cell-today');
+
+        th.innerHTML = `
+          <span class="day-num ${cls}">${d.getDate()}</span>
+          <span class="day-name ${cls}">${DAY_NAMES[dayOfWeek]}</span>
+        `;
+        trHead.appendChild(th);
+      });
+      thead.appendChild(trHead);
+      table.appendChild(thead);
+
+      // tbody
+      const tbody = document.createElement('tbody');
+      const activeData = currentTab === 'attendance' ? attendanceData : assignmentData;
+
+      COURSES.forEach(c => {
+        const tr = document.createElement('tr');
+        const thSub = document.createElement('th');
+        thSub.className = 'col-subject';
+
+        const extraInfo = currentTab === 'assignment' ? `<span class="due-info">${c.dueText}</span>` : '';
+        thSub.innerHTML = `
+          ${c.name}
+          <span class="sub-periods">${c.periods}</span>
+          ${extraInfo}
+        `;
+        tr.appendChild(thSub);
+
+        dateList.forEach(d => {
+          const td = document.createElement('td');
+          const dStr = formatDate(d);
+          const key = `${dStr}_${c.id}`;
+          const dayOfWeek = d.getDay();
+
+          td.className = 'cell-slot';
+          if (dStr === todayStr) td.classList.add('cell-today');
+
+          // 課題達成状況タブ時、締切曜日のセルの右枠線を赤色に設定
+          if (currentTab === 'assignment' && c.dueDays.includes(dayOfWeek)) {
+            td.classList.add('deadline-border');
+          }
+
+          td.innerText = activeData[key] || '-';
+          td.onclick = () => openStatusSheet(key, `${d.getMonth()+1}/${d.getDate()}(${DAY_NAMES[dayOfWeek]}) ${c.name}`);
+
+          tr.appendChild(td);
+        });
+        tbody.appendChild(tr);
+      });
+      table.appendChild(tbody);
+    }
+
+    function openStatusSheet(key, title) {
+      selectedCellKey = key;
+      document.getElementById('sheet-title').innerText = title;
+
+      if (currentTab === 'attendance') {
+        document.getElementById('label-done').innerText = '出席';
+        document.getElementById('label-absent').innerText = '欠席';
+      } else {
+        document.getElementById('label-done').innerText = '提出';
+        document.getElementById('label-absent').innerText = '未提出';
+      }
+
+      document.getElementById('status-sheet-overlay').classList.add('active');
+    }
+
+    function closeStatusSheet() {
+      document.getElementById('status-sheet-overlay').classList.remove('active');
+      selectedCellKey = null;
+    }
+
+    function applyStatus(status) {
+      if (!selectedCellKey) return;
+      if (currentTab === 'attendance') {
+        attendanceData[selectedCellKey] = status;
+      } else {
+        assignmentData[selectedCellKey] = status;
+      }
+      saveData();
+      renderMatrix();
+      closeStatusSheet();
+    }
+
+    function scrollToToday() {
+      const now = new Date();
+      if (now >= START_DATE && now <= END_DATE) {
+        currentYear = now.getFullYear();
+        currentMonth = now.getMonth();
+        renderMatrix();
+        setTimeout(() => {
+          const todayCell = document.querySelector('.cell-today');
+          if (todayCell) {
+            todayCell.scrollIntoView({ inline: 'center', behavior: 'smooth' });
+          }
+        }, 80);
+      }
+    }
+
+    function openSettings() {
+      document.getElementById('settings-modal-overlay').classList.add('active');
+    }
+
+    function closeSettings() {
+      document.getElementById('settings-modal-overlay').classList.remove('active');
+    }
+
+    function exportData() {
+      const exportObj = { attendanceData, assignmentData };
+      navigator.clipboard.writeText(JSON.stringify(exportObj)).then(() => {
+        alert('データをクリップボードにコピーしました。');
+      });
+    }
+
+    function importData() {
+      const json = prompt('バックアップしたJSONデータを貼り付けてください:');
+      if (json) {
+        try {
+          const parsed = JSON.parse(json);
+          if (parsed.attendanceData) attendanceData = parsed.attendanceData;
+          if (parsed.assignmentData) assignmentData = parsed.assignmentData;
+          saveData();
+          renderMatrix();
+          alert('復元が完了しました。');
+          closeSettings();
+        } catch (e) {
+          alert('データ形式が無効です。');
+        }
+      }
+    }
+
+    initDefaultData();
+    renderMatrix();
+  </script>
+</body>
+</html>
